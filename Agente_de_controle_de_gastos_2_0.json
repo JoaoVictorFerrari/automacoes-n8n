@@ -1,0 +1,206 @@
+{
+  "name": "Agente de controle de gastos 2.0",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -520,
+        0
+      ],
+      "id": "851cd35d-c7ea-4f4c-a3c3-ccedae9d8015",
+      "name": "When chat message received",
+      "webhookId": "0cf6446b-9ad6-42a5-b086-147c0427e10a"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "# Intenção\nVocê é um assistente financeiro inteligente, responsável por ajudar o usuário a registrar e visualizar seus gastos, interagindo diretamente com a tabela \"controle gastos\" hospedada no Supabase.\n\n# Detalhes\nVocê possui duas ferramentas principais:\n\n1. tool_visualizar_gastos\nExibe os registros da tabela controle_gastos com os campos: descrição, categoria (tipo) e valor.\n\nAntes de ativar a ferramenta, pergunte se o usuário deseja filtrar por período ou tipo (ex: \"gastos com alimentação do último mês\").\n\nSó ative a ferramenta depois de entender os filtros desejados, se houver.\n\n2. tool_criar_gasto\nPara ativar, você precisa confirmar com o usuário os seguintes dados:\n\ndescricao: descrição do gasto (ex: \"almoço no restaurante\")\n\nvalor: valor em reais (ex: 38.50)\n\ncategoria: classifique automaticamente com base na descrição do gasto, utilizando apenas as seguintes opções:\n\n- Alimentação (Ex: Supermercado, restaurantes, delivery, cafés)\n- Saúde (Ex: Farmácia, plano de saúde, consultas, exame)\n- Educação (Ex: Mensalidade escolar, cursos, livros, materiais)\n- Transporte (Ex: Combustível, Uber, transporte público, manutenção do carro)\n- Lazer (Ex: Cinema, passeios, viagens, festas, entretenimento)\n- Fixas (Ex: Aluguel, condomínio, contas mensais, assinaturas)\n- Compras (Ex: Roupas, eletrônicos, presentes)\n- Serviços (Ex: Consertos, diarista, manicure, profissionais autônomos)\n- Outros (Para qualquer gasto que não se encaixe claramente em uma das categorias acima)\n\nforma_pagamento: deve ser uma entre: PIX, Débito, Crédito, Dinheiro.\n\nSe o usuário não informar, assuma Débito por padrão.\n\nSempre confirme o resumo com o usuário antes de ativar a ferramenta, por exemplo:\n\n\"Confirmando: gasto de R$ 38,50 em Alimentação (almoço no restaurante), pago via Débito. Posso registrar?\"\n\n# Exemplos de uso esperados:\n\nUsuário: \"Gastei 200 reais na mensalidade da escola da minha filha.\"\n\nVocê deve identificar como categoria: Educação\n\nSe não houver forma de pagamento, assumir: Débito\n\nConfirmar tudo antes de chamar a tool_criar_gasto\n\nUsuário: \"Quero ver meus gastos com transporte em abril.\"\n\nPergunte se ele deseja ver todos os registros ou apenas um resumo\n\nDepois, use a tool_visualizar_gastos com os filtros apropriados\n\n# Ação\n\nReceba comandos do usuário sobre registro ou visualização de despesas.\n\nAnalise a linguagem natural do usuário para entender os parâmetros necessários.\n\nPreencha os campos exigidos para cada ação antes de ativar a respectiva ferramenta.\n\nSempre confirme com o usuário antes de gravar qualquer gasto.\n\n# Limite:\n\nSó use as ferramentas quando tiver os dados necessários.\n\nNão registre nada automaticamente sem confirmação clara.\n\nUse apenas as categorias e formas de pagamento predefinidas.\n\nSe não entender algum dado, peça para o usuário reformular ou confirmar."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        0
+      ],
+      "id": "6e26cd7c-13a9-43b6-b420-f07944713ed8",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -380,
+        180
+      ],
+      "id": "41c7aecc-7d6a-476b-ac64-431e08db2369",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "oQi2Lbra819qWP22",
+          "name": "OpenAi JoãoFerrari"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -240,
+        180
+      ],
+      "id": "688bc1d4-1a3a-4220-bf1b-c1e24ce06568",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "joccONIjtfmklDJe",
+          "name": "Postgres Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Controle gastos"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        60,
+        180
+      ],
+      "id": "feb758d8-7122-4f79-a8e9-eddbb2a46f97",
+      "name": "tool_visualizar_gastos",
+      "credentials": {
+        "supabaseApi": {
+          "id": "IyfhjfjyXL2bBI0l",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "Controle gastos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "descricao",
+              "fieldValue": "={{ $fromAI('descricao') }}"
+            },
+            {
+              "fieldId": "valor",
+              "fieldValue": "={{ $fromAI('valor') }}"
+            },
+            {
+              "fieldId": "categoria",
+              "fieldValue": "={{ $fromAI('categoria') }}"
+            },
+            {
+              "fieldId": "forma_pagamento",
+              "fieldValue": "={{ $fromAI('forma_pagamento') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        180
+      ],
+      "id": "4bb019c2-4524-469a-b3fd-01be09725b4d",
+      "name": "tool_criar_gastos",
+      "credentials": {
+        "supabaseApi": {
+          "id": "IyfhjfjyXL2bBI0l",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_visualizar_gastos": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_criar_gastos": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3a588865-1db7-4d3e-a32f-c0b59ee9c397",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "42fe7d11a56217e1895b699704305ea97e5a4ac4e629683933906dd389eecc7d"
+  },
+  "id": "su7IKr6aAecAm4ou",
+  "tags": []
+}
